@@ -18,23 +18,31 @@ export function hideUserBubble() {
 
 // --- Director bubble with typewriter + talk sound ---
 
-let directorQueue: string[] = [];
 let directorBuffer = "";
 let directorTyping = false;
 let directorBubbleEl: HTMLElement | null = null;
+let directorDone = false;
+let directorSoundStarted = false;
 
 export function resetDirectorBubble() {
   const container = bubblesContainer();
   container.innerHTML = "";
   directorBubbleEl = null;
   directorBuffer = "";
-  directorQueue = [];
   directorTyping = false;
+  directorDone = false;
+  directorSoundStarted = false;
   stopTalkSound();
 }
 
 export function addDirectorBubbleStreaming(chunk: string) {
   directorBuffer += chunk;
+
+  // Start sound on very first chunk
+  if (!directorSoundStarted) {
+    directorSoundStarted = true;
+    playTalkSound();
+  }
 
   if (!directorTyping) {
     drainDirectorBuffer();
@@ -42,10 +50,10 @@ export function addDirectorBubbleStreaming(chunk: string) {
 }
 
 export function finishDirectorStreaming(): Promise<void> {
-  // Wait until the typewriter finishes all buffered text
+  directorDone = true;
   return new Promise((resolve) => {
     const check = () => {
-      if (!directorTyping && directorQueue.length === 0) {
+      if (!directorTyping && directorBuffer.length === 0) {
         stopTalkSound();
         resolve();
       } else {
@@ -59,7 +67,10 @@ export function finishDirectorStreaming(): Promise<void> {
 function drainDirectorBuffer() {
   if (directorBuffer.length === 0) {
     directorTyping = false;
-    stopTalkSound();
+    // Only stop sound if streaming is done — otherwise just pause typing and wait for more chunks
+    if (directorDone) {
+      stopTalkSound();
+    }
     return;
   }
 
@@ -71,7 +82,6 @@ function drainDirectorBuffer() {
     directorBubbleEl.className = "speech-bubble";
     directorBubbleEl.textContent = "";
     container.appendChild(directorBubbleEl);
-    playTalkSound();
   }
 
   const char = directorBuffer[0];
