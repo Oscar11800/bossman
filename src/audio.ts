@@ -55,11 +55,11 @@ export function playTalkSound() {
 
   const source = audioCtx.createBufferSource();
   source.buffer = talkBuffer;
+  source.loop = true;
   source.playbackRate.value = 0.9 + Math.random() * 0.3;
   source.connect(audioCtx.destination);
   source.start(0);
   activeTalkSource = source;
-  source.onended = () => { activeTalkSource = null; };
 }
 
 export function stopTalkSound() {
@@ -78,10 +78,10 @@ export function playTypeSound() {
 
   const source = audioCtx.createBufferSource();
   source.buffer = typeBuffer;
+  source.loop = true;
   source.connect(audioCtx.destination);
   source.start(0);
   activeTypeSource = source;
-  source.onended = () => { activeTypeSource = null; };
 }
 
 export function stopTypeSound() {
