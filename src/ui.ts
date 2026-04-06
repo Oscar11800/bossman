@@ -1,3 +1,5 @@
+import { getProgrammerScreenPos } from "./scene";
+
 const bubblesContainer = () =>
   document.getElementById("director-bubbles")!;
 const userBubble = () => document.getElementById("user-bubble")!;
@@ -8,29 +10,63 @@ export function showUserBubble(text: string) {
   el.classList.remove("hidden");
 }
 
-export function addDirectorBubble(text: string) {
-  const bubble = document.createElement("div");
-  bubble.className = "speech-bubble";
-  bubble.textContent = text;
+export function hideUserBubble() {
+  const el = userBubble();
+  el.classList.add("hidden");
+}
+
+let currentTypewriter: number | null = null;
+
+export function addDirectorBubble(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    // Cancel any ongoing typewriter
+    if (currentTypewriter !== null) {
+      clearInterval(currentTypewriter);
+      currentTypewriter = null;
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "speech-bubble";
+    bubble.textContent = "";
+
+    const container = bubblesContainer();
+    container.appendChild(bubble);
+
+    // Position near the programmer
+    updateBubblePosition();
+
+    // Typewriter effect — 30ms per character
+    let i = 0;
+    currentTypewriter = window.setInterval(() => {
+      if (i < text.length) {
+        bubble.textContent += text[i];
+        i++;
+        container.scrollTop = container.scrollHeight;
+      } else {
+        clearInterval(currentTypewriter!);
+        currentTypewriter = null;
+        resolve();
+      }
+    }, 30);
+  });
+}
+
+function updateBubblePosition() {
   const container = bubblesContainer();
-  container.appendChild(bubble);
-  container.scrollTop = container.scrollHeight;
+  const pos = getProgrammerScreenPos();
+  if (pos) {
+    container.style.position = "absolute";
+    container.style.left = `${pos.x}px`;
+    container.style.bottom = `${window.innerHeight - pos.y}px`;
+  }
 }
 
-export function setMonitorText(text: string) {
-  const content = document.getElementById("monitor-content")!;
-  content.textContent = text;
+// Update bubble position each frame (camera might move)
+function positionLoop() {
+  updateBubblePosition();
+  requestAnimationFrame(positionLoop);
 }
-
-export function appendMonitorChar(char: string) {
-  const content = document.getElementById("monitor-content")!;
-  // Remove cursor if present
-  const cursor = content.querySelector(".cursor");
-  if (cursor) cursor.remove();
-
-  content.appendChild(document.createTextNode(char));
-  content.scrollTop = content.scrollHeight;
-}
+requestAnimationFrame(positionLoop);
 
 export function updateMicButton(listening: boolean) {
   const btn = document.getElementById("mic-btn")!;
@@ -40,6 +76,6 @@ export function updateMicButton(listening: boolean) {
     label.textContent = "Listening...";
   } else {
     btn.classList.remove("listening");
-    label.textContent = "Click to speak";
+    label.textContent = "Hold SPACE to speak";
   }
 }

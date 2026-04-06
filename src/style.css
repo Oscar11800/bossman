@@ -45,12 +45,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 20px;
-  max-width: 360px;
-  overflow-y: auto;
-  flex: 1;
-  justify-content: flex-end;
+  max-width: 300px;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .speech-bubble {

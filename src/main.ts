@@ -1,31 +1,28 @@
 import { initScene } from "./scene";
 import { initVoice } from "./voice";
+import { askDirector } from "./director";
 import {
   showUserBubble,
+  hideUserBubble,
   addDirectorBubble,
   updateMicButton,
 } from "./ui";
 
 function init() {
-  // Init 3D scene
   const sceneContainer = document.getElementById("scene-container")!;
   initScene(sceneContainer);
 
-  // Track accumulated transcript during a hold session
   let currentTranscript = "";
+  let isProcessing = false;
 
-  // Init voice
   const voice = initVoice({
     onInterim: (transcript) => {
       currentTranscript = transcript;
       showUserBubble(transcript);
     },
-    onFinal: (_transcript) => {
-      // Not used — we fire on keyup instead
-    },
+    onFinal: () => {},
   });
 
-  // Hold space to talk
   const heldKeys = new Set<string>();
 
   window.addEventListener("keydown", (e) => {
@@ -33,7 +30,7 @@ function init() {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     e.preventDefault();
 
-    if (heldKeys.has("Space")) return; // Already held
+    if (heldKeys.has("Space") || isProcessing) return;
     heldKeys.add("Space");
 
     currentTranscript = "";
@@ -49,12 +46,30 @@ function init() {
     voice.stop();
     updateMicButton(false);
 
-    // Fire the director response on release (falling edge)
-    if (currentTranscript) {
+    if (currentTranscript && !isProcessing) {
       const transcript = currentTranscript;
       currentTranscript = "";
-      // Placeholder: Director will handle this in Phase 3
-      addDirectorBubble(`Hmm, you said: "${transcript}"... Let me think about that.`);
+      isProcessing = true;
+
+      setTimeout(async () => {
+        hideUserBubble();
+
+        try {
+          const coderPrompt = await askDirector(transcript, async (line) => {
+            await addDirectorBubble(line);
+          });
+
+          if (coderPrompt) {
+            // TODO Phase 5: Send to Coder AI
+            console.log("Coder prompt ready:", coderPrompt);
+          }
+        } catch (err) {
+          console.error("Director error:", err);
+          await addDirectorBubble("Hmm, something went wrong. Try again?");
+        }
+
+        isProcessing = false;
+      }, 500);
     }
   });
 }
