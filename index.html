@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bossman</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- 3D scene fills the background -->
+    <div id="scene-container"></div>
+
+    <!-- UI overlay on top of 3D -->
+    <div id="ui-overlay">
+      <!-- Director speech bubbles -->
+      <div id="director-bubbles"></div>
+
+      <!-- Voice controls: bottom -->
+      <div id="voice-bar">
+        <div id="user-bubble" class="hidden"></div>
+        <button id="mic-btn" type="button">
+          <span class="mic-label">Click to speak</span>
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
