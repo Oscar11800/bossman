@@ -3,76 +3,77 @@ interface VoiceCallbacks {
   onFinal: (transcript: string) => void;
 }
 
-const SpeechRecognition =
+const SpeechRecognitionCtor =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 export function initVoice(callbacks: VoiceCallbacks): {
-  toggle: () => void;
+  start: () => void;
+  stop: () => void;
   isListening: () => boolean;
 } {
-  if (!SpeechRecognition) {
+  if (!SpeechRecognitionCtor) {
     console.error("SpeechRecognition not supported");
-    return {
-      toggle: () => alert("Speech recognition not supported in this browser."),
-      isListening: () => false,
-    };
+    const noop = () => {};
+    return { start: noop, stop: noop, isListening: () => false };
   }
-
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
 
   let listening = false;
+  let recognition: SpeechRecognition | null = null;
 
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    // Build full transcript from all results
-    let interim = "";
-    let final = "";
+  function start() {
+    if (listening) return;
+    listening = true;
 
-    for (let i = 0; i < event.results.length; i++) {
-      const result = event.results[i];
-      if (result.isFinal) {
-        final += result[0].transcript;
-      } else {
-        interim += result[0].transcript;
+    recognition = new SpeechRecognitionCtor!();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      let final = "";
+
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          final += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
       }
-    }
 
-    // Show interim (live as you speak)
-    if (interim) {
-      callbacks.onInterim(final + interim);
-    }
+      // Show live text as user speaks
+      callbacks.onInterim((final + interim).trim());
+    };
 
-    // Fire final when a segment completes
-    if (final) {
-      callbacks.onFinal(final.trim());
-    }
-  };
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech error:", event.error);
+    };
 
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    console.error("Speech error:", event.error);
-    if (event.error !== "no-speech" && event.error !== "aborted") {
-      listening = false;
-    }
-  };
+    recognition.onend = () => {
+      // Restart if still holding space
+      if (listening) {
+        recognition?.start();
+      }
+    };
 
-  recognition.onend = () => {
-    // Restart if still supposed to be listening (browser auto-stops sometimes)
-    if (listening) {
-      recognition.start();
-    }
-  };
+    recognition.start();
+  }
 
-  function toggle() {
-    if (listening) {
-      listening = false;
-      recognition.stop();
-    } else {
-      listening = true;
-      recognition.start();
+  function stop() {
+    if (!listening) return;
+    listening = false;
+
+    // Collect final transcript before stopping
+    if (recognition) {
+      // Small delay to let final results flush
+      setTimeout(() => {
+        // Grab whatever we have and fire onFinal
+        recognition?.stop();
+        recognition = null;
+      }, 200);
     }
   }
 
-  return { toggle, isListening: () => listening };
+  return { start, stop, isListening: () => listening };
 }

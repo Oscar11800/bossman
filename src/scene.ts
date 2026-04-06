@@ -41,14 +41,22 @@ export function initScene(container: HTMLElement) {
   fillLight.position.set(-3, 2, -2);
   scene.add(fillLight);
 
-  // Debug helpers — grid + axes so we can see the scene is working
+  // Debug helpers
   const grid = new THREE.GridHelper(10, 10, 0x444444, 0x333333);
   scene.add(grid);
 
   const axes = new THREE.AxesHelper(2);
   scene.add(axes);
 
-  // Orbit controls
+  // Debug cube — proves the scene renders
+  const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  );
+  cube.position.set(0, 0.25, 0);
+  scene.add(cube);
+
+  // Orbit controls — attach to renderer canvas directly
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 1, 0);
   controls.enableDamping = true;
@@ -76,7 +84,9 @@ export function initScene(container: HTMLElement) {
 function normalizeModel(model: THREE.Object3D, targetHeight: number) {
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
-  // Scale to target height
+
+  console.log("Raw model size:", { x: size.x, y: size.y, z: size.z });
+
   const scale = targetHeight / size.y;
   model.scale.multiplyScalar(scale);
 
@@ -89,8 +99,6 @@ function normalizeModel(model: THREE.Object3D, targetHeight: number) {
   model.position.x -= centerScaled.x;
   model.position.y -= minScaled.y;
   model.position.z -= centerScaled.z;
-
-  console.log("Normalized size:", box.getSize(new THREE.Vector3()).multiplyScalar(scale));
 }
 
 function loadModels() {
@@ -98,33 +106,35 @@ function loadModels() {
 
   // Load programmer (Director)
   loader.load(
-    "/assets/programmer.glb",
+    new URL("/assets/programmer.glb", import.meta.url).href,
     (gltf) => {
       const model = gltf.scene;
-      normalizeModel(model, 2); // 2 units tall
+      normalizeModel(model, 2);
       model.position.x = -1.5;
       scene.add(model);
-      console.log("Programmer loaded");
+      console.log("Programmer loaded OK");
     },
     (progress) => {
-      console.log("Programmer loading:", Math.round((progress.loaded / progress.total) * 100) + "%");
+      if (progress.total > 0) {
+        console.log("Programmer:", Math.round((progress.loaded / progress.total) * 100) + "%");
+      }
     },
     (err) => console.error("Failed to load programmer:", err)
   );
 
   // Load retro PC
   loader.load(
-    "/assets/retro-pc.gltf",
+    new URL("/assets/retro-pc.gltf", import.meta.url).href,
     (gltf) => {
       const model = gltf.scene;
-      normalizeModel(model, 1.5); // 1.5 units tall
+      normalizeModel(model, 1.5);
       model.position.x = 1.5;
       scene.add(model);
-      console.log("Retro PC loaded");
+      console.log("Retro PC loaded OK");
     },
     (progress) => {
       if (progress.total > 0) {
-        console.log("PC loading:", Math.round((progress.loaded / progress.total) * 100) + "%");
+        console.log("PC:", Math.round((progress.loaded / progress.total) * 100) + "%");
       }
     },
     (err) => console.error("Failed to load retro PC:", err)
