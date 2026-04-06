@@ -1,13 +1,17 @@
 import { initScene } from "./scene";
 import { initVoice } from "./voice";
+import { initAudio } from "./audio";
 import { askDirector } from "./director";
 import { askCoder, executeCode } from "./coder";
 import {
   showUserBubble,
   hideUserBubble,
+  resetDirectorBubble,
   addDirectorBubbleStreaming,
-  setMonitorText,
-  appendMonitorText,
+  finishDirectorStreaming,
+  resetMonitor,
+  appendMonitorStreaming,
+  finishMonitorStreaming,
   updateMicButton,
 } from "./ui";
 
@@ -36,6 +40,9 @@ function init() {
     if (heldKeys.has("Space") || isProcessing) return;
     heldKeys.add("Space");
 
+    // Start loading audio on first gesture (don't await — let it load while user speaks)
+    initAudio();
+
     currentTranscript = "";
     voice.start();
     updateMicButton(true);
@@ -56,9 +63,14 @@ function init() {
 
       setTimeout(async () => {
         hideUserBubble();
+        resetDirectorBubble();
+        resetMonitor();
+
+        // Ensure audio is fully loaded before Director talks
+        await initAudio();
 
         try {
-          // Step 1: Director interprets and speaks to the computer
+          // Step 1: Director speaks to the computer
           const directorResponse = await askDirector(
             transcript,
             (chunk) => {
@@ -66,19 +78,23 @@ function init() {
             }
           );
 
-          // Step 2: Coder receives Director's words and writes code
-          setMonitorText("");
+          await finishDirectorStreaming();
+
+          // Step 2: Coder writes code
           const code = await askCoder(
             directorResponse,
             (chunk) => {
-              appendMonitorText(chunk);
+              appendMonitorStreaming(chunk);
             }
           );
 
-          // Step 3: Execute the code
+          await finishMonitorStreaming();
+
+          // Step 3: Execute the code in the page
           executeCode(code);
         } catch (err) {
           console.error("Pipeline error:", err);
+          resetDirectorBubble();
           addDirectorBubbleStreaming("Ugh, something broke. Not my fault.");
         }
 

@@ -122,7 +122,7 @@ function loadModels() {
 
   // Load programmer (Director) — in a corner, facing the PC
   loader.load(
-    new URL("/assets/programmer.glb", import.meta.url).href,
+    `${import.meta.env.BASE_URL}assets/programmer.glb`,
     (gltf) => {
       const model = gltf.scene;
       normalizeModel(model, 2);
@@ -140,7 +140,7 @@ function loadModels() {
 
   // Load retro PC — near the programmer, facing back at them
   loader.load(
-    new URL("/assets/retro-pc.gltf", import.meta.url).href,
+    `${import.meta.env.BASE_URL}assets/retro-pc.gltf`,
     (gltf) => {
       const model = gltf.scene;
       normalizeModel(model, 1.5);

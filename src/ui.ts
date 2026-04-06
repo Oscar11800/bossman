@@ -1,4 +1,5 @@
 import { getProgrammerScreenPos } from "./scene";
+import { playTalkSound, stopTalkSound, playTypeSound, stopTypeSound } from "./audio";
 
 const bubblesContainer = () =>
   document.getElementById("director-bubbles")!;
@@ -15,43 +16,101 @@ export function hideUserBubble() {
   userBubble().classList.add("hidden");
 }
 
-// Streaming Director bubble — appends chunks as they arrive
-let activeBubble: HTMLElement | null = null;
+// --- Director bubble with typewriter + talk sound ---
 
-export function addDirectorBubbleStreaming(chunk: string) {
-  const container = bubblesContainer();
+let directorQueue: string[] = [];
+let directorBuffer = "";
+let directorTyping = false;
+let directorBubbleEl: HTMLElement | null = null;
 
-  if (!activeBubble) {
-    activeBubble = document.createElement("div");
-    activeBubble.className = "speech-bubble";
-    activeBubble.textContent = "";
-    container.appendChild(activeBubble);
-  }
-
-  activeBubble.textContent += chunk;
-  container.scrollTop = container.scrollHeight;
-}
-
-export function finishDirectorBubble() {
-  activeBubble = null;
-}
-
-export function clearDirectorBubbles() {
+export function resetDirectorBubble() {
   const container = bubblesContainer();
   container.innerHTML = "";
-  activeBubble = null;
+  directorBubbleEl = null;
+  directorBuffer = "";
+  directorQueue = [];
+  directorTyping = false;
+  stopTalkSound();
 }
 
-// Monitor (code display)
-export function setMonitorText(text: string) {
-  monitorContent().textContent = text;
+export function addDirectorBubbleStreaming(chunk: string) {
+  directorBuffer += chunk;
+
+  if (!directorTyping) {
+    drainDirectorBuffer();
+  }
 }
 
-export function appendMonitorText(text: string) {
+export function finishDirectorStreaming(): Promise<void> {
+  // Wait until the typewriter finishes all buffered text
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!directorTyping && directorQueue.length === 0) {
+        stopTalkSound();
+        resolve();
+      } else {
+        setTimeout(check, 50);
+      }
+    };
+    check();
+  });
+}
+
+function drainDirectorBuffer() {
+  if (directorBuffer.length === 0) {
+    directorTyping = false;
+    stopTalkSound();
+    return;
+  }
+
+  directorTyping = true;
+  const container = bubblesContainer();
+
+  if (!directorBubbleEl) {
+    directorBubbleEl = document.createElement("div");
+    directorBubbleEl.className = "speech-bubble";
+    directorBubbleEl.textContent = "";
+    container.appendChild(directorBubbleEl);
+    playTalkSound();
+  }
+
+  const char = directorBuffer[0];
+  directorBuffer = directorBuffer.slice(1);
+  directorBubbleEl.textContent += char;
+  container.scrollTop = container.scrollHeight;
+
+  setTimeout(drainDirectorBuffer, 40);
+}
+
+// --- Monitor (code display) with typewriter + type sound ---
+
+export function resetMonitor() {
+  monitorContent().textContent = "";
+  monitorStarted = false;
+  stopTypeSound();
+}
+
+let monitorStarted = false;
+
+export function appendMonitorStreaming(chunk: string) {
   const el = monitorContent();
-  el.textContent += text;
+
+  if (!monitorStarted) {
+    monitorStarted = true;
+    playTypeSound();
+  }
+
+  el.textContent += chunk;
   el.scrollTop = el.scrollHeight;
 }
+
+export function finishMonitorStreaming(): Promise<void> {
+  stopTypeSound();
+  monitorStarted = false;
+  return Promise.resolve();
+}
+
+// --- Mic button ---
 
 export function updateMicButton(listening: boolean) {
   const btn = document.getElementById("mic-btn")!;
@@ -65,7 +124,8 @@ export function updateMicButton(listening: boolean) {
   }
 }
 
-// Position bubbles near the programmer model
+// --- Position bubbles near programmer ---
+
 function updateBubblePosition() {
   const container = bubblesContainer();
   const pos = getProgrammerScreenPos();
