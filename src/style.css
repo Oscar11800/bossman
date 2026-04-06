@@ -73,6 +73,44 @@ body {
   }
 }
 
+/* --- Code Monitor Overlay --- */
+
+#monitor-overlay {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 360px;
+  max-height: 300px;
+  background: rgba(10, 26, 10, 0.92);
+  border: 1px solid #33ff33;
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  pointer-events: none;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+#monitor-header {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #33ff33;
+  border-bottom: 1px solid rgba(51, 255, 51, 0.3);
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+
+#monitor-content {
+  padding: 10px;
+  font-size: 11px;
+  color: #33ff33;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+  overflow-y: auto;
+  max-height: 260px;
+}
+
 /* --- Voice Bar --- */
 
 #voice-bar {

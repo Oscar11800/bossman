@@ -7,6 +7,18 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let programmerModel: THREE.Object3D | null = null;
 
+// Expose scene globals for the Coder AI to use
+declare global {
+  interface Window {
+    _bossman: {
+      scene: THREE.Scene;
+      camera: THREE.PerspectiveCamera;
+      renderer: THREE.WebGLRenderer;
+      THREE: typeof THREE;
+    };
+  }
+}
+
 export function initScene(container: HTMLElement) {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a2e);
@@ -48,6 +60,9 @@ export function initScene(container: HTMLElement) {
   controls.target.set(0, 1, 0);
   controls.enableDamping = true;
   controls.update();
+
+  // Expose for Coder AI
+  window._bossman = { scene, camera, renderer, THREE };
 
   loadModels();
 

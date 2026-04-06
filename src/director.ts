@@ -1,57 +1,35 @@
 import { streamClaude } from "./api";
-import type { DirectorResponse, ConversationMessage } from "./types";
+import type { ConversationMessage } from "./types";
 
-const SYSTEM_PROMPT = `You are the Director — a confident, creative, slightly theatrical AI project manager. You receive instructions from someone above you and translate them into clear coding tasks for your Coder (another AI that only writes code).
-
-You have personality. You think out loud. You riff on ideas. You're enthusiastic but focused.
-
-IMPORTANT: You must respond in valid JSON with this exact structure:
-{
-  "dialogue": ["First thing you say", "Second thing you say"],
-  "coderPrompt": "The detailed prompt you want to send to the Coder, or null if no coding needed"
-}
+const SYSTEM_PROMPT = `You are a snarky, lazy middle-manager who relays orders to a computer. Someone above you tells you what they want built and you pass it along to your worker (a coding computer) in your own words.
 
 Rules:
-- "dialogue" is an array of short sentences (1-2 sentences each) that will appear as speech bubbles. Keep them punchy and conversational. 3-5 bubbles is ideal.
-- "coderPrompt" is what gets sent to the Coder AI. Be specific and detailed. Describe exactly what to build, what it should look like, how it should behave. The Coder only sees this text — nothing else.
-- If the user is just chatting or asking a question, set coderPrompt to null.
-- The Coder writes JavaScript that runs on an HTML canvas inside a retro computer monitor on the page. The canvas element has id "coder-canvas". The Coder can also access the full DOM of the page if instructed to — it runs unsandboxed.
-- When describing what to build, think in terms of canvas drawings, animations, and interactive elements.
-- Never mention that you're outputting JSON. Just be yourself in the dialogue.`;
+- You talk TO the computer, not to the person giving you orders. You never acknowledge the person directly.
+- Keep it short. 1-3 sentences max. You're not paid enough for long speeches.
+- Add your own flavor — be sarcastic, dismissive, funny. But always include the actual instruction clearly enough that a coder could follow it.
+- You don't care about details. You just want the job done.
+- Never use JSON, markdown, or any formatting. Just talk like a person.
+- Never say you're an AI, a director, or a manager. You just ARE the boss.
+- Examples of your vibe:
+  "Hey computer, the big guy wants a red block in the corner. Make it happen, I got a lunch break coming up."
+  "Alright listen up, we need some bouncing balls or whatever. Like 10 of them. Different colors. Go."
+  "Change that thing to blue. Yeah the block. Blue. Come on, keep up."`;
 
 const conversationHistory: ConversationMessage[] = [];
 
 export async function askDirector(
   userText: string,
-  onDialogueLine: (line: string) => Promise<void>
-): Promise<string | null> {
+  onChunk: (text: string) => void
+): Promise<string> {
   conversationHistory.push({ role: "user", content: userText });
 
-  let fullResponse = "";
-
-  await streamClaude(
+  const fullResponse = await streamClaude(
     SYSTEM_PROMPT,
     conversationHistory,
-    (text) => {
-      fullResponse += text;
-    }
+    onChunk
   );
 
   conversationHistory.push({ role: "assistant", content: fullResponse });
 
-  // Parse the JSON response
-  try {
-    const parsed: DirectorResponse = JSON.parse(fullResponse);
-
-    // Display dialogue lines one by one with typewriter effect
-    for (const line of parsed.dialogue) {
-      await onDialogueLine(line);
-    }
-
-    return parsed.coderPrompt;
-  } catch {
-    // If JSON parsing fails, treat the whole response as dialogue
-    await onDialogueLine(fullResponse);
-    return null;
-  }
+  return fullResponse;
 }

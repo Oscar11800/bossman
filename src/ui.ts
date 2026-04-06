@@ -3,6 +3,7 @@ import { getProgrammerScreenPos } from "./scene";
 const bubblesContainer = () =>
   document.getElementById("director-bubbles")!;
 const userBubble = () => document.getElementById("user-bubble")!;
+const monitorContent = () => document.getElementById("monitor-content")!;
 
 export function showUserBubble(text: string) {
   const el = userBubble();
@@ -11,62 +12,46 @@ export function showUserBubble(text: string) {
 }
 
 export function hideUserBubble() {
-  const el = userBubble();
-  el.classList.add("hidden");
+  userBubble().classList.add("hidden");
 }
 
-let currentTypewriter: number | null = null;
+// Streaming Director bubble — appends chunks as they arrive
+let activeBubble: HTMLElement | null = null;
 
-export function addDirectorBubble(text: string): Promise<void> {
-  return new Promise((resolve) => {
-    // Cancel any ongoing typewriter
-    if (currentTypewriter !== null) {
-      clearInterval(currentTypewriter);
-      currentTypewriter = null;
-    }
-
-    const bubble = document.createElement("div");
-    bubble.className = "speech-bubble";
-    bubble.textContent = "";
-
-    const container = bubblesContainer();
-    container.appendChild(bubble);
-
-    // Position near the programmer
-    updateBubblePosition();
-
-    // Typewriter effect — 30ms per character
-    let i = 0;
-    currentTypewriter = window.setInterval(() => {
-      if (i < text.length) {
-        bubble.textContent += text[i];
-        i++;
-        container.scrollTop = container.scrollHeight;
-      } else {
-        clearInterval(currentTypewriter!);
-        currentTypewriter = null;
-        resolve();
-      }
-    }, 30);
-  });
-}
-
-function updateBubblePosition() {
+export function addDirectorBubbleStreaming(chunk: string) {
   const container = bubblesContainer();
-  const pos = getProgrammerScreenPos();
-  if (pos) {
-    container.style.position = "absolute";
-    container.style.left = `${pos.x}px`;
-    container.style.bottom = `${window.innerHeight - pos.y}px`;
+
+  if (!activeBubble) {
+    activeBubble = document.createElement("div");
+    activeBubble.className = "speech-bubble";
+    activeBubble.textContent = "";
+    container.appendChild(activeBubble);
   }
+
+  activeBubble.textContent += chunk;
+  container.scrollTop = container.scrollHeight;
 }
 
-// Update bubble position each frame (camera might move)
-function positionLoop() {
-  updateBubblePosition();
-  requestAnimationFrame(positionLoop);
+export function finishDirectorBubble() {
+  activeBubble = null;
 }
-requestAnimationFrame(positionLoop);
+
+export function clearDirectorBubbles() {
+  const container = bubblesContainer();
+  container.innerHTML = "";
+  activeBubble = null;
+}
+
+// Monitor (code display)
+export function setMonitorText(text: string) {
+  monitorContent().textContent = text;
+}
+
+export function appendMonitorText(text: string) {
+  const el = monitorContent();
+  el.textContent += text;
+  el.scrollTop = el.scrollHeight;
+}
 
 export function updateMicButton(listening: boolean) {
   const btn = document.getElementById("mic-btn")!;
@@ -79,3 +64,20 @@ export function updateMicButton(listening: boolean) {
     label.textContent = "Hold SPACE to speak";
   }
 }
+
+// Position bubbles near the programmer model
+function updateBubblePosition() {
+  const container = bubblesContainer();
+  const pos = getProgrammerScreenPos();
+  if (pos) {
+    container.style.position = "absolute";
+    container.style.left = `${pos.x}px`;
+    container.style.bottom = `${window.innerHeight - pos.y}px`;
+  }
+}
+
+function positionLoop() {
+  updateBubblePosition();
+  requestAnimationFrame(positionLoop);
+}
+requestAnimationFrame(positionLoop);

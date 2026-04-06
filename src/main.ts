@@ -1,10 +1,13 @@
 import { initScene } from "./scene";
 import { initVoice } from "./voice";
 import { askDirector } from "./director";
+import { askCoder, executeCode } from "./coder";
 import {
   showUserBubble,
   hideUserBubble,
-  addDirectorBubble,
+  addDirectorBubbleStreaming,
+  setMonitorText,
+  appendMonitorText,
   updateMicButton,
 } from "./ui";
 
@@ -55,17 +58,28 @@ function init() {
         hideUserBubble();
 
         try {
-          const coderPrompt = await askDirector(transcript, async (line) => {
-            await addDirectorBubble(line);
-          });
+          // Step 1: Director interprets and speaks to the computer
+          const directorResponse = await askDirector(
+            transcript,
+            (chunk) => {
+              addDirectorBubbleStreaming(chunk);
+            }
+          );
 
-          if (coderPrompt) {
-            // TODO Phase 5: Send to Coder AI
-            console.log("Coder prompt ready:", coderPrompt);
-          }
+          // Step 2: Coder receives Director's words and writes code
+          setMonitorText("");
+          const code = await askCoder(
+            directorResponse,
+            (chunk) => {
+              appendMonitorText(chunk);
+            }
+          );
+
+          // Step 3: Execute the code
+          executeCode(code);
         } catch (err) {
-          console.error("Director error:", err);
-          await addDirectorBubble("Hmm, something went wrong. Try again?");
+          console.error("Pipeline error:", err);
+          addDirectorBubbleStreaming("Ugh, something broke. Not my fault.");
         }
 
         isProcessing = false;
