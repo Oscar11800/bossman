@@ -1,98 +1,175 @@
 # Bossman: AI Directs AI to Code
 
-A creative web project where you speak to a "Director AI" who interprets your vision and prompts a "Coder AI" to build live programs on a virtual screen.
+A creative web project where you speak to a "Director AI" who interprets your vision and prompts a "Coder AI" to build live programs — with real, unsandboxed access to the page itself.
 
 ## Core Loop
 
 ```
-You (voice) → Director AI (character with personality) → Coder AI (API) → Live program on virtual screen
+You (toggle mic button) → Director AI (speech-to-text → text prompt) → Coder AI (text in, code out) → Executes unsandboxed on the real page
 ```
 
-## Concept: "The Studio"
+- You speak to the Director. The Director transcribes your speech and translates it into structured prompts for the Coder.
+- The Coder only sees text from the Director. It does not know you exist.
+- The Coder's output is real JavaScript that executes in the main DOM — not sandboxed, not in an iframe. It can reach anything on the page.
+- If you want the Coder to break out of its monitor, you tell the Director, the Director tells the Coder. The chain of command is the point.
+- Page refresh = full reset. No persistence. The page always returns to its original state.
 
-A webpage styled like a retro programmer's desk / film director's set. The Director AI is a character sitting at a desk — they have personality, they talk in speech bubbles, they react to your instructions like a creative collaborator.
+## Finalized Spec
 
-You speak via the mic. You say something like "make me a game where fish eat each other." The Director character nods, thinks (visible thought bubble), then starts dictating to the Coder.
+### Voice Input
+- Toggle button: click once to start dictation, click again to stop
+- Uses Web Speech API (`SpeechRecognition`)
+- Transcribed text appears as your speech bubble
 
-The Coder is represented as a second screen within the screen — a terminal/monitor on the desk. Code streams onto it character by character. When the Director says "run it," the code executes in a sandboxed iframe and the result appears on a little TV on the desk.
+### Director AI
+- Receives your transcribed speech
+- Responds with text in Animal Crossing-style speech bubbles
+- Audio: mumble/gibberish sounds per word (Animal Crossing style) + typing sounds
+- Outputs structured JSON: dialogue lines for display + a code prompt for the Coder
+- Has personality — interprets and riffs on your requests, doesn't just parrot them
+- The Director is the only entity that knows about you
 
-## What Makes It Cool
+### Coder AI
+- Receives only text prompts from the Director
+- Does not know about you (the human)
+- Has conversation context to iterate on its work
+- Outputs JavaScript/HTML code
+- Code is constrained to a structured template with a canvas draw space (the "retro computer monitor")
+- BUT the code runs unsandboxed in the main page context — if directed, it can manipulate any DOM element, the Director's bubbles, the page layout, anything
+- The "retro computer" is its suggested workspace, not its prison
 
-### 1. Voice Input
-Web Speech API — zero friction, feels magical. You talk, the Director listens, your words appear as a speech bubble above your avatar.
+### The Monitor
+- Retro CRT computer aesthetic — scanlines, slight glow, chunky border
+- Code streams into it character by character with typing/keyboard sounds
+- This is where the Coder's output is displayed and where its programs run by default
+- Breakouts beyond the monitor are real DOM manipulation, not faked
 
-### 2. The Director Has Personality
-The Director doesn't just proxy your request — they interpret it. They might say:
+### Sound Design
+- Director speech: Animal Crossing-style mumble (randomized syllable sounds per word, pitch-shifted)
+- Code streaming: mechanical keyboard / typewriter clatter
+- General UI: subtle click/bloop sounds
 
-> "Hmm, fish eating fish... I'm thinking canvas, simple sprites, bigger fish chase smaller ones. Let me tell the Coder."
+### Execution Model
+- Coder's generated code is injected via `<script>` into the main document
+- Full access to `document`, `window`, all page elements
+- No iframe, no sandbox, no restrictions
+- Reset = browser refresh (natural behavior, no special logic needed)
 
-They compose a structured prompt for the Coder AI. You see the Director's thinking in speech bubbles, one sentence at a time, like a comic strip.
+### Kill Switch
+- Browser refresh (`Ctrl+R` / `Cmd+R`) or close tab
+- Page always loads fresh from static files — all Coder mutations are ephemeral
 
-### 3. The Coder Is a Separate API Call
-The Director's prompt goes to a second Claude API call with a system prompt constraining it to output only self-contained HTML/JS. The code streams onto the virtual monitor. The Director watches and commentates:
+## Tech Stack
 
-> "Looking good... okay, they're adding collision detection now..."
-
-### 4. The "Run" Moment Is Theatrical
-When the code is done, the Director dramatically hits a button (animated), the virtual TV flickers on, and the code executes in a sandboxed iframe.
-
-### 5. Interrupt and Redirect
-Mid-coding, you speak again: "make the background darker" or "add sound effects." The Director stops the Coder, says "hold on, change of plans," and sends a follow-up prompt. This iterative loop is the whole point.
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Language | TypeScript | Type safety for the Director↔Coder protocol |
+| Build | Vite | Instant dev server, fast builds, minimal config |
+| Framework | Vanilla DOM | No React overhead for a single interactive page |
+| Hosting | GitHub Pages | Free, static, via GitHub Actions |
+| API Proxy | Cloudflare Worker | Holds API key server-side, free tier (100k req/day) |
+| AI | Claude API | Two separate calls: Director + Coder, both streaming |
+| Voice | Web Speech API | Native browser, no library needed |
+| Audio | Web Audio API | Generate Animal Crossing mumbles + typing sounds programmatically |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│  Browser (single HTML page)                 │
-│                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │ You      │  │ Director │  │ Virtual  │  │
-│  │ (mic +   │→ │ (Claude  │→ │ Monitor  │  │
-│  │  speech  │  │  call 1) │  │ (iframe) │  │
-│  │  bubble) │  │          │  │          │  │
-│  └──────────┘  │ Speech   │  │ Code     │  │
-│                │ bubbles  │→ │ streams  │  │
-│                │ + avatar │  │ in, then │  │
-│                └──────────┘  │ executes │  │
-│                      ↓       └──────────┘  │
-│               Claude call 2                 │
-│               (Coder - returns HTML/JS)     │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Browser (Vite-built static page on GitHub Pages)           │
+│                                                             │
+│  ┌──────────┐    ┌─────────────┐    ┌────────────────────┐  │
+│  │ You      │    │ Director    │    │ Retro Monitor      │  │
+│  │ [toggle  │ →  │ Speech      │ →  │ Code streams in    │  │
+│  │  mic]    │    │ bubbles +   │    │ then executes      │  │
+│  │ Speech   │    │ AC mumble   │    │ unsandboxed in     │  │
+│  │ bubble   │    │ audio       │    │ main DOM           │  │
+│  └──────────┘    └──────┬──────┘    └────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│                  Cloudflare Worker                            │
+│                  (proxies to Claude API,                      │
+│                   holds API key)                              │
+│                         │                                    │
+│              ┌──────────┴──────────┐                         │
+│              │                     │                         │
+│        Claude Call 1         Claude Call 2                    │
+│        (Director)            (Coder)                         │
+│        - persona prompt      - code-only prompt              │
+│        - returns dialogue    - returns JS/HTML               │
+│          + coder instruction - has conversation context       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-- **Voice input**: `webkitSpeechRecognition` / `SpeechRecognition` API
-- **Director AI**: Claude API call with streaming, persona system prompt
-- **Coder AI**: Separate Claude API call, system prompt = "output only a single self-contained HTML file"
-- **Execution**: `srcdoc` iframe — just set `iframe.srcdoc = generatedCode`
-- **Speech bubbles**: CSS + JS animation, text revealed word by word with typewriter effect
+## File Structure
 
-## Constraint: What the Coder Builds
+```
+bossman/
+  src/
+    main.ts              ← entry point, orchestration, voice input
+    director.ts          ← Director AI: system prompt, streaming, parsing response
+    coder.ts             ← Coder AI: system prompt, streaming, code parsing
+    screen.ts            ← retro monitor rendering, code display, execution
+    audio.ts             ← Animal Crossing mumble generator, typing sounds, UI sounds
+    ui.ts                ← speech bubbles, toggle button, layout
+    types.ts             ← shared types (DirectorResponse, CoderOutput, etc.)
+    style.css            ← layout, retro monitor CSS, speech bubble styles, CRT effect
+  index.html             ← shell HTML
+  vite.config.ts
+  tsconfig.json
+  package.json
+  worker/
+    index.ts             ← Cloudflare Worker: ~20 lines, proxies API calls
+    wrangler.toml        ← Cloudflare config
+  plan.md
+```
 
-Single-file HTML5 Canvas games/toys. Visual, impressive, self-contained, runs in an iframe with zero dependencies. Fish eating fish, bouncing balls, particle effects, simple platformers.
+## Implementation Plan
 
-## MVP (Phase 1)
+### Phase 1: Scaffold + Voice Loop
+1. Init Vite + TypeScript project, configure for GitHub Pages
+2. Basic `index.html` layout: mic toggle button, Director area, Monitor area
+3. Implement voice input (`SpeechRecognition`) with toggle on/off
+4. Display transcribed text as user speech bubble
+5. Basic CSS layout — doesn't need to be pretty yet, just functional zones
 
-One HTML file. Two API calls. ~300 lines:
+### Phase 2: Cloudflare Worker Proxy
+6. Write the Worker: accepts POST with messages array, forwards to Claude API with API key from env, streams response back
+7. Deploy Worker, note the URL
+8. Test with a simple fetch from the browser
 
-1. Page loads with a "hold to talk" button
-2. You speak → transcribed text appears in your bubble
-3. Director API call (streaming) → response appears as animated speech bubbles
-4. Director's response includes a structured `[CODE_REQUEST]` block
-5. That block triggers the Coder API call → code streams onto the virtual monitor
-6. "Run" button (or auto-run) → code executes in iframe
+### Phase 3: Director AI
+9. Define Director system prompt (personality, structured JSON output format)
+10. Implement streaming call to Worker → Claude (Director)
+11. Parse Director response: extract dialogue lines + coder prompt
+12. Render Director dialogue as speech bubbles, one at a time
 
-## Phase 2: Polish
+### Phase 4: Animal Crossing Audio
+13. Implement mumble sound generator using Web Audio API (short randomized vowel sounds, pitch-shifted per character/word)
+14. Play mumble audio synced to each speech bubble's text reveal
+15. Add typing/keyboard sounds for code streaming
 
-- Retro desk scene with pixel art or illustrated style
-- Director character with idle animations
-- Typing sound effects as code streams in
-- CRT scanline effect on the virtual monitor
-- TV static / flicker on "run"
-- Conversation history as stacked speech bubbles
+### Phase 5: Coder AI + Execution
+16. Define Coder system prompt (structured template, canvas draw space, DOM access awareness)
+17. Implement streaming call to Worker → Claude (Coder) with conversation context
+18. Stream code characters into the retro monitor display
+19. On completion: inject code as `<script>` into main document, unsandboxed
+20. The Coder's code runs live — canvas draws, DOM mutations, everything is real
 
-## Phase 3: Advanced
+### Phase 6: Retro Monitor Polish
+21. CRT scanline effect (CSS overlay)
+22. Monitor border / bezel (chunky retro frame, maybe pixel art)
+23. Slight phosphor glow effect
+24. Code display styled as green-on-black terminal text
 
-- Claude Code hook integration — Director IS Claude Code, proxied via WebSocket
-- Multiple Coder "employees" for different tasks
-- Version history of generated programs
-- Share/export generated creations
+### Phase 7: Full Loop Integration
+25. Wire the complete flow: mic toggle → transcription → Director → Coder → execute
+26. Implement iteration: subsequent voice inputs send follow-up context to Director, Director sends follow-up to Coder with previous code context
+27. Test breakout scenarios: direct the Coder (via Director) to modify elements outside the monitor
+28. Edge cases: handle mid-stream interrupts, empty transcriptions, API errors
+
+### Phase 8: Final Polish
+29. Responsive layout (works on different screen sizes)
+30. Loading states and transitions between phases
+31. GitHub Actions workflow for auto-deploy to Pages
+32. README with demo link
