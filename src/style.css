@@ -55,6 +55,13 @@ body {
   pointer-events: none;
 }
 
+.quote {
+  font-style: italic;
+  color: #999;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
 .instructions-title {
   font-size: 14px;
   font-weight: bold;
