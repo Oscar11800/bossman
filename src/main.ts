@@ -45,7 +45,7 @@ function init() {
 
     currentTranscript = "";
     voice.start();
-    updateMicButton(true);
+    updateMicButton("listening");
   });
 
   window.addEventListener("keyup", (e) => {
@@ -54,12 +54,12 @@ function init() {
 
     heldKeys.delete("Space");
     voice.stop();
-    updateMicButton(false);
 
     if (currentTranscript && !isProcessing) {
       const transcript = currentTranscript;
       currentTranscript = "";
       isProcessing = true;
+      updateMicButton("thinking");
 
       setTimeout(async () => {
         hideUserBubble();
@@ -106,7 +106,10 @@ function init() {
         }
 
         isProcessing = false;
+        updateMicButton("idle");
       }, 500);
+    } else {
+      updateMicButton("idle");
     }
   });
 }

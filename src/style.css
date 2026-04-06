@@ -55,14 +55,38 @@ body {
   pointer-events: none;
 }
 
+.instructions-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
 #instructions strong {
   color: #fff;
+}
+
+#instructions p {
+  margin: 4px 0;
+}
+
+.examples {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 #instructions .example {
   color: #888;
   font-style: italic;
   font-size: 12px;
+}
+
+#instructions .example::before {
+  content: "Ex. ";
+  color: #666;
 }
 
 /* --- Director Bubbles --- */
@@ -170,17 +194,19 @@ body {
 #mic-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 16px 36px;
   background: rgba(42, 42, 74, 0.85);
   border: 2px solid #4a4a6a;
   border-radius: 30px;
   color: #e0e0e0;
   font-family: "Courier New", monospace;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.15s ease;
   backdrop-filter: blur(8px);
+  min-width: 240px;
 }
 
 #mic-btn:hover {
@@ -196,6 +222,42 @@ body {
 
 #mic-btn.listening .mic-label {
   color: #ff6666;
+}
+
+#mic-btn.thinking {
+  background: rgba(42, 60, 74, 0.85);
+  border-color: #4a8a9a;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #aaddff;
+}
+
+.dots span {
+  animation: dot-bounce 1.4s ease-in-out infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
 }
 
 @keyframes pulse-glow {

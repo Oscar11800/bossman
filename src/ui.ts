@@ -122,15 +122,23 @@ export function finishMonitorStreaming(): Promise<void> {
 
 // --- Mic button ---
 
-export function updateMicButton(listening: boolean) {
+export function updateMicButton(state: "idle" | "listening" | "thinking") {
   const btn = document.getElementById("mic-btn")!;
   const label = btn.querySelector(".mic-label")!;
-  if (listening) {
-    btn.classList.add("listening");
-    label.textContent = "Listening...";
-  } else {
-    btn.classList.remove("listening");
-    label.textContent = "Hold SPACE to speak";
+
+  btn.classList.remove("listening", "thinking");
+
+  switch (state) {
+    case "listening":
+      btn.classList.add("listening");
+      label.textContent = "Listening...";
+      break;
+    case "thinking":
+      btn.classList.add("thinking");
+      label.innerHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+      break;
+    default:
+      label.textContent = "Hold SPACE to speak";
   }
 }
 
