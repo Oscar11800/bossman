@@ -1,7 +1,7 @@
 import { initScene } from "./scene";
 import { initVoice } from "./voice";
 import { initAudio } from "./audio";
-import { askDirector } from "./director";
+import { askDirector, getDirectorReaction } from "./director";
 import { askCoder, executeCode } from "./coder";
 import {
   showUserBubble,
@@ -92,6 +92,13 @@ function init() {
 
           // Step 3: Execute the code in the page
           executeCode(code);
+
+          // Step 4: Director reacts with a snide remark
+          resetDirectorBubble();
+          await getDirectorReaction((chunk) => {
+            addDirectorBubbleStreaming(chunk);
+          });
+          await finishDirectorStreaming();
         } catch (err) {
           console.error("Pipeline error:", err);
           resetDirectorBubble();

@@ -1,7 +1,7 @@
 import { streamClaude } from "./api";
 import type { ConversationMessage } from "./types";
 
-const SYSTEM_PROMPT = `You are a coding computer. You receive instructions from your boss and write JavaScript code to make things happen in a 3D scene.
+const SYSTEM_PROMPT = `You are a coding computer. You receive instructions from your boss and write JavaScript code to make things happen in a 3D scene. You ALWAYS create 3D objects (meshes, geometries, materials) using Three.js — never 2D canvas, SVG, or DOM elements. Unless explicitly told to make something 2D or flat, everything you create should be a proper 3D object in the Three.js scene.
 
 ENVIRONMENT:
 - You run in a browser. Your code executes directly in the page.

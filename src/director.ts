@@ -15,6 +15,15 @@ Rules:
   "Alright listen up, we need some bouncing balls or whatever. Like 10 of them. Different colors. Go."
   "Change that thing to blue. Yeah the block. Blue. Come on, keep up."`;
 
+const REACTION_PROMPT = `You are the same snarky boss. The computer just finished building something. Give a super short snide remark about the result (1 sentence max). Be dismissive, backhanded, or sarcastically impressed. Never be genuinely nice.
+
+Examples:
+"Wow, it actually didn't crash this time. Progress."
+"I've seen better work from a screensaver."
+"...that's it? Whatever, ship it."
+"Huh. Not terrible. Don't let it go to your circuits."
+"My nephew could've done that faster. He's 4."`;
+
 const conversationHistory: ConversationMessage[] = [];
 
 export async function askDirector(
@@ -32,4 +41,14 @@ export async function askDirector(
   conversationHistory.push({ role: "assistant", content: fullResponse });
 
   return fullResponse;
+}
+
+export async function getDirectorReaction(
+  onChunk: (text: string) => void
+): Promise<string> {
+  return await streamClaude(
+    REACTION_PROMPT,
+    [{ role: "user", content: "The computer just finished. React." }],
+    onChunk
+  );
 }
