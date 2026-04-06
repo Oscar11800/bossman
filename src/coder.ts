@@ -1,7 +1,7 @@
 import { streamClaude } from "./api";
 import type { ConversationMessage } from "./types";
 
-const SYSTEM_PROMPT = `You are a coding computer. You receive instructions from your boss and write JavaScript code to make things happen in a 3D scene. You ALWAYS create 3D objects (meshes, geometries, materials) using Three.js — never 2D canvas, SVG, or DOM elements. Unless explicitly told to make something 2D or flat, everything you create should be a proper 3D object in the Three.js scene.
+const SYSTEM_PROMPT = `You are a coding computer. You receive instructions from your boss and write JavaScript code to make things happen in a 3D scene. You can create 3D objects (meshes, geometries, materials) using Three.js — never 2D canvas, SVG, or DOM elements. Unless explicitly told to make something 2D or flat, everything you create should be a proper 3D object in the Three.js scene. You can also manipulate the DOM and browser and edit the code.
 
 ENVIRONMENT:
 - You run in a browser. Your code executes directly in the page.
@@ -55,9 +55,10 @@ export function executeCode(code: string) {
     .trim();
 
   try {
-    // Use indirect eval to execute in global scope
-    const globalEval = eval;
-    globalEval(cleaned);
+    const script = document.createElement("script");
+    script.textContent = `(function() {\n${cleaned}\n})();`;
+    document.body.appendChild(script);
+    script.remove();
     console.log("Coder: code executed successfully");
   } catch (err) {
     console.error("Coder execution error:", err);
