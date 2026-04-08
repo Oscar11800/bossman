@@ -23,8 +23,7 @@ RULES:
   const { scene, THREE } = window._bossman;
 - For animations, store requestAnimationFrame ids on window so they can be cancelled:
   window._anim = requestAnimationFrame(function loop() { ... window._anim = requestAnimationFrame(loop); });
-- Store created objects on window so they can be referenced later:
-  window._myBlock = mesh;
+- ALWAYS store created objects on window so you can modify them later instead of recreating: window._myBlock = mesh; If you already created something, reference window._myBlock and modify it — do NOT rebuild from scratch.
 - Track what you've placed. If you previously created objects, remember their positions and don't stack new things on top unless asked.
 - Keep code concise. Just make it work.`;
 
@@ -55,12 +54,12 @@ export function executeCode(code: string) {
     .trim();
 
   try {
-    // Use indirect eval to execute in global scope
-    const globalEval = eval;
-    globalEval(cleaned);
-    console.log("Coder: code executed successfully");
+    const script = document.createElement("script");
+    script.textContent = `(function() { try {\n${cleaned}\n} catch(e) { console.error("Coder runtime error:", e); } })();`;
+    document.body.appendChild(script);
+    script.remove();
+    console.log("Coder: code executed");
   } catch (err) {
-    console.error("Coder execution error:", err);
-    console.error("Code was:", cleaned);
+    console.error("Coder injection error:", err);
   }
 }
